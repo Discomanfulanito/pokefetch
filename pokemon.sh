@@ -10,9 +10,9 @@ POKEMON_LIST=(
   "mewtwo --mega-y"
 )
 # Change with your fetcher
-FETCHER="fastfetch"
+FETCHER="fastfetch --logo none"
 
-FETCHER_HEIGHT=$((($($FETCHER | wc -l) + 1) / 2))
+FETCHER_HEIGHT=$($FETCHER | wc -l)
 
 # Extra settings
 EXTRA_PADDING_H=2
@@ -32,34 +32,27 @@ pad_top=$((($FETCHER_HEIGHT - $height) / 2))
 pad_top=$((pad_top + EXTRA_PADDING_H))
 
 # Just for safety
-if [ $pad_top -lt 0 ]; then
-  pad_top=0
-fi
+(( pad_top < 0 )) && pad_top=0
 
 # Gets sprite's sprite_width
-sprite_width=0
-
-# Iters sprite's lines
-while IFS= read -r line; do
-  # Gets line's width
-  line_w=${#line}
-  # Compare and Update sprite_width
-  if ((line_w > sprite_width)); then
-    sprite_width=$line_w
-  fi
-done <<<"$sprite"
-
-# Real sprite_width (idk why the other is scaled)
-sprite_width=$(((sprite_width + 35 - 1) / 35))
+# strip ANSI color codes with sed to get the true printed width
+sprite_width=$(
+  printf '%s\n' "$sprite" \
+  | sed 's/\x1b\[[0-9;]*m//g' \
+  | awk '{ if (length > max) max = length } END { print max }'
+)
 
 # Calculate the lateral padding
-pad_lat=$((($WIDTH - sprite_width) / 2))
-pad_lat=$((pad_lat + EXTRA_PADDING_W))
+pad_Left=$((($WIDTH - sprite_width) / 2))
+# +1 to avoid odd-width rounding issues so logo area remains visually centered
+pad_Right=$((($WIDTH - sprite_width + 1) / 2))
+
+pad_Left=$((pad_Left + EXTRA_PADDING_W))
+pad_Right=$((pad_Right + EXTRA_PADDING_W))
 
 # Just for safety
-if [ $pad_lat -lt 0 ]; then
-  pad_lat=0
-fi
+(( pad_Left < 0 )) && pad_Left=0
+(( pad_Right < 0 )) && pad_Right=0
 
 # this may not work for your fetcher, check them all
-echo "$sprite" | $FETCHER --file-raw - --logo-padding-top $pad_top --logo-padding-left $pad_lat --logo-padding-right $pad_lat
+echo "$sprite" | $FETCHER --file-raw - --logo-padding-top $pad_top --logo-padding-left $pad_Left --logo-padding-right $pad_Right
